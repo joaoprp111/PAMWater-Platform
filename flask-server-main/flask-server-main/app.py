@@ -20,11 +20,11 @@ def hello_world():
 
 
 mydb = mysql.connector.connect(
-    host="mysql-95018-0.cloudclusters.net",
-    port=19044,
+    host="mysql-95523-0.cloudclusters.net",
+    port=10021,
     user="admin",
-    passwd="IlzUqWhz",
-    database="pamwater"
+    passwd="CxbdeOLh",
+    database="PAMWater"
 )
 
 cursor = mydb.cursor()
