@@ -6,3 +6,4 @@ joblib
 mysql.connector
 scikit-learn
 tensorflow-cpu==2.8.0
+protobuf==3.20.*
