@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
-    return 'HELLO WORLD (TEST)'
+    return 'HELLO FROM PAMWATER BACKEND SERVICE'
 
 
 mydb = mysql.connector.connect(
