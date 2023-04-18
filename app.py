@@ -318,7 +318,7 @@ def predict_future_elec_tot_gui():
             dados_x.date = pd.to_datetime(dados_x.date).dt.date
             dados_x.date = pd.to_datetime(dados_x.date)
 
-            dados_x.date = dados_x.date.dt.to_period('D').apply(lambda r: r.start_time)
+            dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
             dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
             #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
 
