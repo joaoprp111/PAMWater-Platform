@@ -210,11 +210,9 @@ def predict_future_ph_gui():
             dados_x = d[d.sub_type == i].copy()
             dados_x.date = pd.to_datetime(dados_x.date).dt.date
             dados_x.date = pd.to_datetime(dados_x.date)
-
             dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
             dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
             #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
-
             dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
             nan = dados_x[dados_x.isnull().any(1)]
             if len(nan) > 0:
@@ -231,7 +229,6 @@ def predict_future_ph_gui():
                     dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
             datasets.append(dados_x)
     dados_final = pd.concat(datasets)
-
     dados_con_analitico = dados_final.copy()
     for i,p in dados_con_analitico.iterrows():
         dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
@@ -318,7 +315,7 @@ def predict_future_elec_tot_gui():
             dados_x.date = pd.to_datetime(dados_x.date).dt.date
             dados_x.date = pd.to_datetime(dados_x.date)
 
-            dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
+            dados_x.date = dados_x.date.dt.to_period('D').apply(lambda r: r.start_time)
             dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
             #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
 
