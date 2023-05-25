@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
-    return 'HELLO FROM RENDER PAMWATER BACKEND SERVICE'
+    return 'HELLO WORLD'
 
 
 mydb = mysql.connector.connect(
@@ -29,11 +29,11 @@ mydb = mysql.connector.connect(
 
 cursor = mydb.cursor()
 
-query_indicator_electricidade = "SELECT indicator_table.indicator_name, indicator_table.indicator_type, indicator_table.units, indicator_value_table.sub_type, indicator_value_table.input, indicator_value_table.value, indicator_value_table.date, indicator_value_table.city_name FROM indicator_table INNER JOIN indicator_value_table ON indicator_table.id = indicator_value_table.indicator"
+query_indicator_electricidade = "SELECT indicator_table.indicator_name, indicator_table.indicator_type, indicator_table.units, indicator_value_table.sub_type, indicator_value_table.value, indicator_value_table.date, indicator_value_table.city_name FROM indicator_table INNER JOIN indicator_value_table ON indicator_table.id = indicator_value_table.indicator"
 cursor.execute(query_indicator_electricidade)
 result_indicator_electricidade = cursor.fetchall()
 
-data_db = pd.DataFrame((result_indicator_electricidade),columns=['indicator_name','indicator_type','units','sub_type','input','value','date','city_name'])
+data_db = pd.DataFrame((result_indicator_electricidade),columns=['indicator_name','indicator_type','units','sub_type','value','date','city_name'])
 data_db_elec = data_db[data_db.indicator_type == 'Electricidade']
 data_db = data_db[data_db.indicator_type == 'Controlo Analitico']
 
@@ -113,25 +113,26 @@ def predict_future():
             dados_x = d[d.sub_type == i].copy()
             dados_x.date = pd.to_datetime(dados_x.date).dt.date
             dados_x.date = pd.to_datetime(dados_x.date)
+            print(dados_x)
 
             dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
-            dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
+            dados_x = dados_x.groupby([dados_x['city_name'], dados_x['indicator_type'],dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
             #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
 
             dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
-            nan = dados_x[dados_x.isnull().any(1)]
-            if len(nan) > 0:
-                idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-                num_timesteps = 3
-                while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
-                    dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
-                    nan = dados_x[dados_x.isnull().any(1)]
-                    if len(nan) == 0:
-                        break
-                    else:
-                        idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-                while int(dados_x.value.isnull().sum()) > 0:
-                    dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
+            #nan = dados_x[dados_x.isnull().any(1)]
+            #if len(nan) > 0:
+            #    idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+            #    num_timesteps = 3
+            #    while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
+            #        dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
+            #        nan = dados_x[dados_x.isnull().any(1)]
+            #        if len(nan) == 0:
+            #            break
+            #        else:
+            #            idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+            #    while int(dados_x.value.isnull().sum()) > 0:
+            #        dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
             datasets.append(dados_x)
     dados_final = pd.concat(datasets)
 
@@ -139,7 +140,7 @@ def predict_future():
     for i,p in dados_con_analitico.iterrows():
         dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
         dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = p.value
-    dados_con_analitico = dados_con_analitico.drop(columns=['value'])
+    dados_con_analitico = dados_con_analitico.drop(columns=['value','city_name','indicator_type','indicator_name','sub_type','units'])
     dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
     for x in dados_con_analitico.columns:
         dados_x = dados_con_analitico[x]
@@ -147,7 +148,7 @@ def predict_future():
             while int(dados_x.isnull().sum()) > 0:
                     dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
             dados_con_analitico[x] = dados_x
-    dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado','cqo em Efluente Tratado','amonia em Efluente Tratado']]
+    dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado']]
 
     scaler = MinMaxScaler(feature_range=(-1,1))
 
@@ -210,9 +211,11 @@ def predict_future_ph_gui():
             dados_x = d[d.sub_type == i].copy()
             dados_x.date = pd.to_datetime(dados_x.date).dt.date
             dados_x.date = pd.to_datetime(dados_x.date)
+
             dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
             dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
             #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
+
             dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
             nan = dados_x[dados_x.isnull().any(1)]
             if len(nan) > 0:
@@ -229,6 +232,7 @@ def predict_future_ph_gui():
                     dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
             datasets.append(dados_x)
     dados_final = pd.concat(datasets)
+
     dados_con_analitico = dados_final.copy()
     for i,p in dados_con_analitico.iterrows():
         dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
@@ -316,23 +320,23 @@ def predict_future_elec_tot_gui():
             dados_x.date = pd.to_datetime(dados_x.date)
 
             dados_x.date = dados_x.date.dt.to_period('D').apply(lambda r: r.start_time)
-            dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
+            dados_x = dados_x.groupby([dados_x['city_name'],dados_x['indicator_type'],dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
             #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
 
             dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
-            nan = dados_x[dados_x.isnull().any(1)]
-            if len(nan) > 0:
-                idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-                num_timesteps = 3
-                while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
-                    dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
-                    nan = dados_x[dados_x.isnull().any(1)]
-                    if len(nan) == 0:
-                        break
-                    else:
-                        idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-                while int(dados_x.value.isnull().sum()) > 0:
-                    dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
+            #nan = dados_x[dados_x.isnull().any(1)]
+            #if len(nan) > 0:
+            #    idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+            #    num_timesteps = 3
+            #    while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
+            #        dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
+            #        nan = dados_x[dados_x.isnull().any(1)]
+            #        if len(nan) == 0:
+            #            break
+            #        else:
+            #            idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+            #    while int(dados_x.value.isnull().sum()) > 0:
+            #        dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
             datasets.append(dados_x)
     dados_final = pd.concat(datasets)
 
@@ -340,7 +344,7 @@ def predict_future_elec_tot_gui():
     for i,p in dados_con_analitico.iterrows():
         dados_con_analitico.loc[i, ["Electricidade " + p.indicator_name]] = np.nan
         dados_con_analitico.loc[i, ["Electricidade " + p.indicator_name]] = p.value
-    dados_con_analitico = dados_con_analitico.drop(columns=['value'])
+    dados_con_analitico = dados_con_analitico.drop(columns=['value','city_name','indicator_name','indicator_type','sub_type','units'])
     dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
     for x in dados_con_analitico.columns:
         dados_x = dados_con_analitico[x]
